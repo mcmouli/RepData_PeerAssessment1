@@ -1,24 +1,26 @@
----
-title: "Reproducible Research: Peer Assessment 1"
-author: "Chandramouli M"
-output: 
-  html_document:
-    keep_md: true
+set---
+title: "Activity Monitor Data"
+author: "Chandra"
+date: "July 28, 2017"
+output: html_document
 ---
 
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
 
 ## Activity Monitor Data Assignment
 
-```{r libraryload, echo=TRUE}
+```{r libraryload, echo=FALSE}
 
 library(knitr, quiet=T)
-library(plyr, quiet=T)  
-library(ggplot2, quiet=T) 
+library(plyr, quiet=T)  # For munging
+library(ggplot2, quiet=T)  # For plotting
 opts_chunk$set(dev="png", fig.path="figure/")
 
 ```
 
-## Loading and preprocessing the data
+Loading and preprocessing the data
 
 ```{r Preprocess, echo=FALSE}
 
@@ -32,15 +34,21 @@ monitor$date <- as.Date(monitor$date, format="%Y-%m-%d")
 ```
 
 
-## What is mean total number of steps taken per day?
+1. What is mean total number of steps taken per day?
+   Now make a histogram of the number of steps per day. Here we will ignore any missing values.
 
-```{r stepsperday, echo=FALSE}
+```{r stepsperday, echo=TRUE}
 
 monitor.daily <- ddply(monitor, .(date.factor), summarize,
                         total.steps=sum(steps, na.rm=TRUE))
-hist(monitor.daily$total.steps, col="yellow", main=" Activity",
+hist(monitor.daily$total.steps, col="blue", main=" Activity",
      xlab="no.of Steps Per Day")
 
+```
+
+2.Mean and Median per day
+
+```{r meanmedian, echo=TRUE}
 
 pdaymean <- mean(monitor.daily$total.steps, na.rm=TRUE)
 pdaymedian <- median(monitor.daily$total.steps, na.rm=TRUE)
@@ -50,30 +58,41 @@ cat(paste("The mean number of steps per day is",
 ```
 
 
+3. What is the average daily monitor pattern?
 
-
-## What is the average daily activity pattern?
-
-```{r dailyactivitypattern, echo=FALSE}
+```{r, echo=TRUE}
 
 monitor.pattern <- ddply(monitor, "interval", summarize,
                           mean=mean(steps, na.rm=TRUE))
 g <- ggplot(monitor.pattern, aes(interval, mean))
-g + geom_line(color="green") + 
+g + geom_line(color="blue") + 
   labs(title="Fitness monitor", 
        x="Interval through day (min)",
        y="Mean no.of steps")
 
 ```
 
+4. What interval has the highest average number of steps?
 
-## Imputing missing values
+```{r Intervals, echo=TRUE}
 
-```{r ImputingMissing, echo=FALSE}
+max.interval <- monitor.pattern$interval[which.max(monitor.pattern$mean)]
+cat(paste("Interval corresponding to maximum average number of steps:",
+          max.interval,"minutes"))
+```
+
+5. Imputing missing values
+
+```{r Missing, echo=FALSE}
 
 nmissing <- sum(!complete.cases(monitor))
-
 cat(paste("Number of rows with missing data:", nmissing))
+
+```
+
+We fill missing values for the number of steps with the mean number for that interval. Note that this will make the steps non-integral.
+
+```{r, echo=TRUE}
 
 impute.value <- function(steps, interval) {
     if (is.na(steps)) {
@@ -83,9 +102,13 @@ impute.value <- function(steps, interval) {
     }
 }
 imputed.monitor <- monitor
-
 imputed.monitor$steps <- mapply(impute.value, monitor$steps, 
                                 monitor$interval)
+```
+
+Now see how different the mean and median are for the total number per day with and without imputation:
+
+```{r}
 
 total.steps <- tapply(monitor$steps, monitor$date.factor,
                       sum, na.rm=TRUE)
@@ -97,31 +120,43 @@ cat(paste("For the imputed the mean and median per day are:",
           format(mean(total.steps.imputed)), "and",
           format(median(total.steps.imputed))))
 
-hist(total.steps.imputed, col="purple", main="Fitness Tracker Activity",
-     xlab="Number of Steps Per Day (imputed)")
-
-
 ```
 
+Make a histogram of the mean number per day after imputation.
 
-## Are there differences in activity patterns between weekdays and weekends?
+```{r}
+
+hist(total.steps.imputed, col="blue", main="Fitness Tracker Activity",
+     xlab="Number of Steps Per Day (imputed)")
+
+```
+Check to make sure we filled in all the missing values:
+
+```{r}
+nmissing <- sum(!complete.cases(imputed.monitor))
+cat(paste("After imputation, number of rows with missing data:", nmissing))
+
+```
+Are there differences in monitor patterns between weekdays and weekends?
+
+Add a factor variable for weekday vs. weekend:
 
 ```{r weekdayend, echo=FALSE}
 
 daytype <- function(date) 
     if (weekdays(date) %in% c("Saturday", "Sunday")) "weekend" else "weekday"
-
 imputed.monitor$day.type <- as.factor(sapply(imputed.monitor$date, daytype))
 
+```
+
+And look at the mean number of steps per day per date type:
+
+```{r}
 
 steps.day.daytype <- ddply(imputed.monitor, .(interval, day.type),
                            summarize, steps=mean(steps))
-
 ggplot(steps.day.daytype, aes(interval, steps)) + 
     geom_line() + facet_grid(day.type ~ .) +
     labs(x="Time of Day (min)", y="Number of steps",
          title="Activity patterns on weekdays vs. weekends")
-
 ```
-
-

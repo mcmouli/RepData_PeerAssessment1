@@ -1,6 +1,6 @@
 ---
 title: "Reproducible Research: Peer Assessment 1"
-author: "SatyaBharat"
+author: "Chandramouli M"
 output: 
   html_document:
     keep_md: true
@@ -34,7 +34,7 @@ monitor$date <- as.Date(monitor$date, format="%Y-%m-%d")
 
 ## What is mean total number of steps taken per day?
 
-```{r stepsperday, echo=FALSE}
+```{r stepsperday, echo=TRUE}
 
 monitor.daily <- ddply(monitor, .(date.factor), summarize,
                         total.steps=sum(steps, na.rm=TRUE))
@@ -69,7 +69,7 @@ g + geom_line(color="green") +
 
 ## Imputing missing values
 
-```{r ImputingMissing, echo=FALSE}
+```{r ImputingMissing, echo=TRUE}
 
 nmissing <- sum(!complete.cases(monitor))
 
